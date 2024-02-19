@@ -2,12 +2,15 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <cmath>
 
 // Token stuff
 // Token “kind” values:
 char const number = '8';    // a floating-point number
 char const quit = 'q';      // an exit command
 char const print = ';';     // a print command
+char const name = 'x';      // a variable
+
 
 class token
 {
@@ -87,6 +90,12 @@ token token_stream::get()    // read a token from the token_stream
 
     switch (ch)
     {
+    case 'a':
+    case 'z':
+    case 'e':
+    case 'p':
+    case 'i':
+    case '%':
     case '(':
     case ')':
     case ';':
@@ -95,6 +104,7 @@ token token_stream::get()    // read a token from the token_stream
     case '-':
     case '*':
     case '/':
+    case 'x':
         return token(ch);    // let each character represent itself
     case '.':
     case '0':
@@ -156,6 +166,24 @@ double primary()    // Number or ‘(‘ Expression ‘)’
     }
     case number:    // we use ‘8’ to represent the “kind” of a number
         return t.value();    // return the number’s value
+    case '-':    // handle unary minus operator
+        return -primary();    // return the negation of the next primary expression
+    case 'p':    // handle pre-defined symbolic values like pi
+        if (ts.get().kind() == 'i') // check if it's 'i'
+            return 3.1415965;      // return the value of pi from <cmath>
+        else
+            throw std::runtime_error("unknown symbolic value");
+    case 'e':    // handle 'e' (mathematical constant)
+        return 2.71828;    // return the value of e from <cmath>
+    case 'a': // handle absolute zero
+        if (ts.get().kind() == 'z'){
+            return -273.15;
+        }
+        else{
+            throw std::runtime_error("unknown symbolic value");
+        }
+    case 'i':
+        return 2.54;    // return the value of 1 inch in cm
     default:
         throw std::runtime_error("primary expected");
     }
@@ -179,6 +207,14 @@ double term()
             if (d == 0)
                 throw std::runtime_error("divide by zero");
             left /= d;
+            break;
+        }
+        case '%':    // handle modulo operator
+        {
+            double d = primary();
+            if (d == 0)
+                throw std::runtime_error("divide by zero");
+            left = fmod(left, d);    // use fmod() function from cmath for modulo operation
             break;
         }
         default:
